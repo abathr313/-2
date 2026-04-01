@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة التدوير الذكية | Recycling Platform</title>
+    <meta name="description" content="نظام ذكي لإدارة المواد القابلة لإعادة التدوير للمطاعم والمصانع">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- 1. LANDING PAGE -->
+    <section id="landing-page" class="page-container active animate-fade-in">
+        <header class="landing-nav">
+            <div class="nav-logo">♻️ منصة التدوير</div>
+            <div class="nav-links">
+                <button onclick="app.showAdminLogin()" class="btn-admin-nav">🔐 الإدارة</button>
+            </div>
+        </header>
+
+        <main class="landing-hero">
+            <div class="hero-content animate-slide-up">
+                <div class="hero-logo">♻️</div>
+                <h1 class="hero-title">منصة التجميع الذكية</h1>
+                <p class="hero-subtitle">الحل الأمثل لإدارة وتدوير المخلفات بكفاءة عالية</p>
+            </div>
+
+            <div class="login-section animate-slide-up">
+                <h2 class="section-tag">خيار تسجيل الدخول</h2>
+                <div class="role-cards-grid">
+                    <div class="role-card" onclick="app.showAuth('restaurant')">
+                        <div class="role-icon">🍽️</div>
+                        <div class="role-info">
+                            <h3>دخول المطعم</h3>
+                            <p>طلب تجميع المواد وتتبع الشحنات</p>
+                        </div>
+                        <div class="card-arrow">←</div>
+                    </div>
+
+                    <div class="role-card" onclick="app.showAuth('factory')">
+                        <div class="role-icon" style="background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4);">🏭</div>
+                        <div class="role-info">
+                            <h3>دخول المصنع</h3>
+                            <p>استلام الشحنات وتأكيد الأوزان</p>
+                        </div>
+                        <div class="card-arrow">←</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <!-- 2. AUTH PAGE -->
+    <section id="auth-page" class="page-container animate-fade-in">
+        <div class="auth-card animate-slide-up">
+            <button class="btn-back" onclick="app.navigate('landing')">← رجوع</button>
+            <div class="auth-header">
+                <span id="auth-emoji" class="emoji">🍽️</span>
+                <h2 id="auth-title">تسجيل دخول</h2>
+            </div>
+
+            <div id="auth-toggle-container" class="auth-toggle">
+                <button id="toggle-login" class="active" onclick="app.setAuthMode('login')">تسجيل دخول</button>
+                <button id="toggle-register" onclick="app.setAuthMode('register')">إنشاء حساب</button>
+            </div>
+
+            <div id="auth-error" class="error-msg">البريد الإلكتروني أو كلمة المرور غير صحيحة</div>
+
+            <form id="auth-form" onsubmit="app.handleAuth(event)">
+                <div id="field-name" class="form-group" style="display: none;">
+                    <label for="reg-name">الاسم</label>
+                    <input type="text" id="reg-name" class="form-input" placeholder="اسم المطعم أو المصنع">
+                </div>
+                <div class="form-group">
+                    <label for="auth-email">البريد الإلكتروني</label>
+                    <input type="email" id="auth-email" class="form-input" placeholder="example@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="auth-pass">كلمة المرور</label>
+                    <input type="password" id="auth-pass" class="form-input" placeholder="••••••••" required>
+                </div>
+                <div id="field-phone" class="form-group" style="display: none;">
+                    <label for="reg-phone">رقم الهاتف</label>
+                    <input type="tel" id="reg-phone" class="form-input" placeholder="077XXXXXXXX">
+                </div>
+                <button type="submit" class="btn-submit">دخول</button>
+            </form>
+
+            <p id="demo-credentials" style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 1.5rem;">
+                للتجربة: <span id="demo-email">r@r.com</span> — كلمة المرور: 123
+            </p>
+        </div>
+    </section>
+
+    <!-- 3. RESTAURANT DASHBOARD -->
+    <section id="restaurant-dashboard" class="page-container animate-fade-in">
+        <header class="dash-header bg-restaurant-header">
+            <div class="top-bar">
+                <div class="user-info">
+                    <p>مرحباً،</p>
+                    <h2 id="res-user-name">اسم المطعم</h2>
+                </div>
+                <div class="header-actions">
+                    <span class="badge-role">🍽️ مطعم</span>
+                    <button class="btn-logout" onclick="app.logout()">خروج</button>
+                </div>
+            </div>
+            <div class="stats-scroll">
+                <div class="stat-item">
+                    <p class="stat-val" id="res-total-orders">0</p>
+                    <p class="stat-label">إجمالي الطلبات</p>
+                </div>
+                <div class="stat-item">
+                    <p class="stat-val" id="res-confirmed-orders" style="color: #6ee7b7;">0</p>
+                    <p class="stat-label">مؤكدة</p>
+                </div>
+                <div class="stat-item">
+                    <p class="stat-val" id="res-pending-confirm" style="color: #fcd34d;">0</p>
+                    <p class="stat-label">بانتظار التأكيد</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="dash-content">
+            <div class="main-dash-column">
+                <!-- Weight Confirmation Alerts -->
+                <div id="res-alerts-container"></div>
+
+                <h3 class="section-title">طلباتي (<span id="res-shipment-count">0</span>)</h3>
+                <div id="res-shipments-list">
+                    <!-- Shipments will be rendered here -->
+                </div>
+            </div>
+
+            <div class="side-dash-column">
+                <button class="cta-button" onclick="app.openCollectionModal()" style="margin-top: 0;">
+                    <span>♻️</span> طلب تجميع
+                </button>
+            </div>
+        </main>
+    </section>
+
+    <!-- 4. FACTORY DASHBOARD -->
+    <section id="factory-dashboard" class="page-container animate-fade-in">
+        <header class="dash-header bg-factory-header">
+            <div class="top-bar">
+                <div class="user-info">
+                    <p>مرحباً،</p>
+                    <h2 id="fac-user-name">اسم المصنع</h2>
+                </div>
+                <div class="header-actions">
+                    <span class="badge-role">🏭 مصنع</span>
+                    <button class="btn-logout" onclick="app.logout()">خروج</button>
+                </div>
+            </div>
+            <div class="stats-scroll">
+                <div class="stat-item">
+                    <p class="stat-val" id="fac-new-requests" style="color: #fca5a5;">0</p>
+                    <p class="stat-label">طلبات جديدة</p>
+                </div>
+                <div class="stat-item">
+                    <p class="stat-val" id="fac-scheduled" style="color: #93c5fd;">0</p>
+                    <p class="stat-label">مجدولة</p>
+                </div>
+                <div class="stat-item">
+                    <p class="stat-val" id="fac-reports" style="color: #fcd34d;">0</p>
+                    <p class="stat-label">بلاغات</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="dash-content">
+            <div class="main-dash-column">
+                <h3 class="section-title">🔔 طلبات جديدة</h3>
+                <div id="fac-pending-list"></div>
+
+                <h3 class="section-title" style="margin-top: 2rem;">📅 مجدولة للاستلام</h3>
+                <div id="fac-scheduled-list"></div>
+            </div>
+
+            <div class="side-dash-column">
+                <div id="fac-reports-container"></div>
+            </div>
+        </main>
+    </section>
+
+    <!-- 5. ADMIN DASHBOARD -->
+    <section id="admin-dashboard" class="page-container animate-fade-in" style="max-width: 800px;">
+        <header class="dash-header bg-admin-header">
+            <div class="top-bar">
+                <div class="user-info">
+                    <p>لوحة التحكم</p>
+                    <h2>إدارة المنصة</h2>
+                </div>
+                <button class="btn-logout" onclick="app.logout()">خروج</button>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                <div class="stat-item">
+                    <p class="stat-val" id="adm-res-count">0</p>
+                    <p class="stat-label">مطاعم</p>
+                </div>
+                <div class="stat-item">
+                    <p class="stat-val" id="adm-fac-count">0</p>
+                    <p class="stat-label">مصانع</p>
+                </div>
+                <div class="stat-item">
+                    <p class="stat-val" id="adm-ship-count">0</p>
+                    <p class="stat-label">شحنات</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="dash-content">
+            <div class="main-dash-column">
+                <div class="admin-tons-hero">
+                    <div class="eco-bg">♻️</div>
+                    <p class="tons-label">إجمالي الأطنان الموردة</p>
+                    <h1 class="tons-val" id="adm-total-tons">0.000</h1>
+                    <p style="opacity: 0.6; font-size: 0.9rem;">طن — (<span id="adm-total-kg">0</span> كغ)</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin-bottom: 2rem;">
+                    <div class="card" style="text-align: center; padding: 1rem;">
+                        <p style="font-size: 1.5rem;">⏳</p>
+                        <p id="adm-pending-val" style="font-weight: 800; font-size: 1.2rem; color: var(--warning);">0</p>
+                        <p style="font-size: 0.7rem; color: var(--text-muted);">بانتظار المصنع</p>
+                    </div>
+                    <div class="card" style="text-align: center; padding: 1rem;">
+                        <p style="font-size: 1.5rem;">✅</p>
+                        <p id="adm-confirmed-val" style="font-weight: 800; font-size: 1.2rem; color: var(--primary-dark);">0</p>
+                        <p style="font-size: 0.7rem; color: var(--text-muted);">تم التأكيد</p>
+                    </div>
+                    <div class="card" style="text-align: center; padding: 1rem;">
+                        <p style="font-size: 1.5rem;">⚠️</p>
+                        <p id="adm-reported-val" style="font-weight: 800; font-size: 1.2rem; color: var(--danger);">0</p>
+                        <p style="font-size: 0.7rem; color: var(--text-muted);">بلاغات</p>
+                    </div>
+                </div>
+
+                <h3 class="section-title">آخر الشحنات</h3>
+                <div id="adm-recent-shipments" class="card" style="padding: 0;"></div>
+            </div>
+
+            <div class="side-dash-column">
+                <h3 class="section-title">توزيع المواد</h3>
+                <div id="adm-material-stats" class="card">
+                    <!-- Material progress bars will be rendered here -->
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <!-- MODAL: COLLECTION REQUEST -->
+    <div id="modal-collect" class="modal-overlay">
+        <div class="modal-content animate-slide-up">
+            <div class="modal-header">
+                <h3 id="modal-collect-title">♻️ اختر نوع المادة</h3>
+                <button class="btn-close" onclick="app.closeModal('modal-collect')">✕</button>
+            </div>
+            
+            <div id="col-step-1" class="material-grid">
+                <div class="mat-card" onclick="app.selectMaterial('plastic')" style="background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a;">
+                    <span class="emoji">🧴</span>
+                    <span>بلاستك</span>
+                </div>
+                <div class="mat-card" onclick="app.selectMaterial('carton')" style="background: #fffbeb; border-color: #fcd34d; color: #92400e;">
+                    <span class="emoji">📦</span>
+                    <span>كارتون</span>
+                </div>
+                <div class="mat-card" onclick="app.selectMaterial('oil')" style="background: #fff7ed; border-color: #fdba74; color: #c2410c;">
+                    <span class="emoji">🛢️</span>
+                    <span>زيوت</span>
+                </div>
+                <div class="mat-card" onclick="app.selectMaterial('aluminum')" style="background: #f9fafb; border-color: #d1d5db; color: #4b5563;">
+                    <span class="emoji">⚙️</span>
+                    <span>ألمنيوم</span>
+                </div>
+            </div>
+
+            <div id="col-step-2" style="display: none;">
+                <div id="selected-mat-banner" class="shipment-item" style="box-shadow: none; border: 2px solid #ddd; margin-bottom: 1.5rem;">
+                    <!-- Banner for selected material -->
+                </div>
+
+                <div class="form-group">
+                    <label>الكمية</label>
+                    <div class="weight-input-container">
+                        <input type="number" id="col-weight" class="form-input" placeholder="0">
+                        <div class="unit-toggle">
+                            <button id="unit-kg" class="active" onclick="app.setUnit('kg')">كغ</button>
+                            <button id="unit-L" onclick="app.setUnit('L')">لتر</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>صورة الشحنة (اختياري)</label>
+                    <div class="photo-upload" onclick="document.getElementById('col-file').click()">
+                        <input type="file" id="col-file" hidden accept="image/*" onchange="app.handleFile(this)">
+                        <div id="photo-preview-placeholder">
+                            <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">📸</span>
+                            <p style="font-weight: 700; font-size: 0.9rem;">اضغط لالتقاط صورة الشحنة</p>
+                        </div>
+                        <img id="photo-preview-img" style="display: none;">
+                    </div>
+                </div>
+
+                <button class="btn-submit" onclick="app.submitCollection()">إرسال الطلب ♻️</button>
+                <button class="btn-back" style="margin: 1rem auto 0; font-size: 0.8rem;" onclick="app.setCollectStep(1)">← تغيير المادة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PICKUP TIME (FACTORY) -->
+    <div id="modal-pickup" class="modal-overlay">
+        <div class="modal-content" style="border-radius: 24px; margin: auto; width: 90%; max-width: 420px; animation: fadeIn 0.2s;">
+            <h3 style="margin-bottom: 1.5rem;">📅 تحديد وقت الاستلام</h3>
+            <div id="pickup-ship-info" class="card" style="background: #f1f5f9; box-shadow: none; margin-bottom: 1.5rem;"></div>
+            
+            <div class="form-group">
+                <label>وقت الاستلام</label>
+                <input type="datetime-local" id="pickup-time-input" class="form-input">
+            </div>
+
+            <div class="btn-group" style="margin-top: 2rem;">
+                <button style="background: #f1f5f9; color: var(--text-main);" onclick="app.closeModal('modal-pickup')">إلغاء</button>
+                <button class="btn-confirm" onclick="app.confirmPickup()">إرسال للمطعم</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ACTUAL WEIGHT (FACTORY) -->
+    <div id="modal-weight" class="modal-overlay">
+        <div class="modal-content" style="border-radius: 24px; margin: auto; width: 90%; max-width: 420px; animation: fadeIn 0.2s;">
+            <h3 style="margin-bottom: 1.5rem;">⚖️ الوزن الفعلي المستلم</h3>
+            <div id="weight-ship-info" class="card" style="background: #f1f5f9; box-shadow: none; margin-bottom: 1.5rem;"></div>
+            
+            <div class="form-group">
+                <label>الوزن الفعلي المستلم</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="number" id="actual-weight-input" class="form-input" style="font-size: 1.5rem; font-weight: 800; text-align: center;">
+                    <span id="actual-weight-unit" style="font-weight: 900; color: var(--text-muted);">كغ</span>
+                </div>
+            </div>
+
+            <div class="btn-group" style="margin-top: 2rem;">
+                <button style="background: #f1f5f9; color: var(--text-main);" onclick="app.closeModal('modal-weight')">إلغاء</button>
+                <button class="btn-confirm" onclick="app.submitWeight()">تأكيد الاستلام</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
