@@ -1,5 +1,5 @@
 /**
- * Recycling Platform - Main Logic
+ * Logba Platform - Main Logic
  * Single Page Application (SPA) Controller
  */
 
@@ -20,6 +20,14 @@ const app = {
         reported:  { label: "تم الإبلاغ ⚠️",    color: "#B91C1C", bg: "#FEF2F2", dot: "#EF4444" },
     },
 
+    map: null,
+    marker: null,
+    factoryMap: null,
+    factoryMarker: null,
+    trackMap: null,
+    truckMarker: null,
+    truckInterval: null,
+
     // --- STATE ---
     state: {
         currentPage: 'landing',
@@ -33,7 +41,7 @@ const app = {
                 { id: "r2", name: "مطعم النخيل",  email: "r2@r.com", password: "123", phone: "07702222222" },
             ],
             factories: [
-                { id: "f1", name: "مصنع الخليج للتدوير", email: "f@f.com", password: "123", phone: "07703333333" },
+                { id: "f1", name: "مصنع الخليج الأخضر", email: "f@f.com", password: "123", phone: "07703333333", isApproved: true },
             ]
         },
 
@@ -65,27 +73,137 @@ const app = {
         selectedMaterial: null,
         selectedUnit: 'kg',
         collectionPhoto: null,
-        activeShipmentId: null, // For factory modals
+        selectedLatLng: null,
+        activeShipmentId: null,
+        trackedShipmentId: null,
+        adminTab: 'overview',
+        charts: {}
+    },
+
+    // --- STORAGE SERVICE (FIREBASE PREP) ---
+    db: {
+        async save(state) {
+            localStorage.setItem('logba_app_state', JSON.stringify(state));
+            // Future: firebase.firestore().collection('state').doc('current').set(state);
+        },
+        async load() {
+            const saved = localStorage.getItem('recycling_app_state');
+            return saved ? JSON.parse(saved) : null;
+        }
     },
 
     // --- INITIALIZATION ---
-    init() {
-        // Load from LocalStorage if exists
-        const saved = localStorage.getItem('recycling_app_state');
+    async init() {
+        const saved = await this.db.load();
         if (saved) {
-            const parsed = JSON.parse(saved);
-            this.state.users = parsed.users;
-            this.state.shipments = parsed.shipments;
+            this.state.users = saved.users;
+            this.state.shipments = saved.shipments;
+            this.state.announcement = saved.announcement || null;
         }
 
+        this.applyTheme();
         this.render();
+        
+        // Listen for data changes
+        window.addEventListener('storage', async (e) => {
+            if (e.key === 'logba_app_state') {
+                const newState = JSON.parse(e.newValue);
+                if (this.state.authRole === 'factory' && newState.shipments.length > this.state.shipments.length) {
+                    this.showToast("طلب تجميع جديد وارد!", "success");
+                    this.playSound('notification');
+                }
+                this.state = newState;
+                this.render();
+            }
+        });
+    },
+
+    applyTheme() {
+        const theme = localStorage.getItem('logba_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        const toggleBtn = document.getElementById('theme-toggle');
+        if (toggleBtn) toggleBtn.innerText = theme === 'dark' ? '☀️' : '🌙';
+    },
+
+    toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('logba_theme', next);
+        const toggleBtn = document.getElementById('theme-toggle');
+        if (toggleBtn) toggleBtn.innerText = next === 'dark' ? '☀️' : '🌙';
+        this.showToast(next === 'dark' ? "تفعيل الوضع الليلي" : "تفعيل الوضع الفاتح", "info");
+    },
+
+    playSound(type) {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        if (type === 'success') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            oscillator.frequency.exponentialRampToValueAtTime(1046.5, audioCtx.currentTime + 0.1); // C6
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'notification') {
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+            oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.5);
+        } else if (type === 'truck') {
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(110, audioCtx.currentTime); 
+            oscillator.frequency.linearRampToValueAtTime(150, audioCtx.currentTime + 0.5);
+            gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.6);
+        }
+    },
+
+    showToast(message, type = 'info') {
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        const icons = { success: '✅', error: '❌', info: '🔔' };
+        toast.innerHTML = `<span>${icons[type] || '🔔'}</span> <span>${message}</span>`;
+        
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => toast.remove(), 400);
+        }, 3000);
+    },
+
+    switchAdminTab(tab) {
+        this.state.adminTab = tab;
+        this.render();
+        
+        if (tab === 'overview') this.renderAdmin();
+        if (tab === 'global-map') this.renderAdminGlobalMap();
+        if (tab === 'users') this.renderAdminUsers();
+        if (tab === 'logs') this.renderAdminLogs();
+        if (tab === 'approvals') this.renderAdminApprovals();
     },
 
     save() {
-        localStorage.setItem('recycling_app_state', JSON.stringify({
-            users: this.state.users,
-            shipments: this.state.shipments
-        }));
+        this.db.save(this.state);
     },
 
     // --- ROUTING ---
@@ -163,6 +281,11 @@ const app = {
         if (this.state.authMode === 'login') {
             const user = pool.find(u => u.email === email && u.password === pass);
             if (user) {
+                if (this.state.authRole === 'factory' && !user.isApproved) {
+                    this.showToast("عذراً، حسابك قيد المراجعة من قبل الإدارة. سيتم إشعارك فور تفعيله.", "info");
+                    this.playSound('notification');
+                    return;
+                }
                 this.state.currentUser = { ...user, type: this.state.authRole };
                 this.navigate(this.state.authRole);
             } else {
@@ -175,9 +298,22 @@ const app = {
                 errEl.style.display = 'block';
                 return;
             }
-            const newUser = { id: 'u' + Date.now(), name, email, password: pass, phone };
+            const newUser = { 
+                id: 'u' + Date.now(), 
+                name, 
+                email, 
+                password: pass, 
+                phone,
+                isApproved: this.state.authRole === 'factory' ? false : true 
+            };
             if (this.state.authRole === 'restaurant') this.state.users.restaurants.push(newUser);
-            else this.state.users.factories.push(newUser);
+            else {
+                this.state.users.factories.push(newUser);
+                this.showToast("تم إنشاء الحساب بنجاح! بانتظار موافقة الإدارة.", "success");
+                this.navigate('landing');
+                this.save();
+                return;
+            }
             
             this.state.currentUser = { ...newUser, type: this.state.authRole };
             this.save();
@@ -203,6 +339,222 @@ const app = {
         document.getElementById('col-step-1').style.display = step === 1 ? 'grid' : 'none';
         document.getElementById('col-step-2').style.display = step === 2 ? 'block' : 'none';
         document.getElementById('modal-collect-title').innerText = step === 1 ? '♻️ اختر نوع المادة' : '📋 تفاصيل الشحنة';
+        
+        if (step === 2) {
+            setTimeout(() => this.initMap(), 100);
+        }
+    },
+
+    initMap() {
+        if (this.map) {
+            this.map.invalidateSize();
+            return;
+        }
+        
+        // Baghdad as default center
+        let lat = 33.3152; 
+        let lng = 44.3661;
+        
+        this.map = L.map('map-picker').setView([lat, lng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(this.map);
+        
+        this.marker = L.marker([lat, lng], { draggable: true }).addTo(this.map);
+        
+        this.marker.on('dragend', (e) => {
+            const pos = e.target.getLatLng();
+            this.state.selectedLatLng = { lat: pos.lat, lng: pos.lng };
+        });
+
+        // Try to get current location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const { latitude, longitude } = pos.coords;
+                this.map.setView([latitude, longitude], 15);
+                this.marker.setLatLng([latitude, longitude]);
+                this.state.selectedLatLng = { lat: latitude, lng: longitude };
+            }, (error) => console.log("Geolocation denied or error", error));
+        }
+        
+        this.state.selectedLatLng = { lat, lng };
+    },
+
+    async searchLocation() {
+        const query = document.getElementById('map-search-query').value;
+        if (!query) return;
+        
+        try {
+            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+            const data = await resp.json();
+            if (data.length > 0) {
+                const { lat, lon } = data[0];
+                const pos = [parseFloat(lat), parseFloat(lon)];
+                this.map.setView(pos, 15);
+                this.marker.setLatLng(pos);
+                this.state.selectedLatLng = { lat: parseFloat(lat), lng: parseFloat(lon) };
+            } else {
+                alert("لم يتم العثور على الموقع");
+            }
+        } catch (e) {
+            console.error("Search failed", e);
+        }
+    },
+
+    openMapModal(id) {
+        this.state.activeShipmentId = id;
+        const ship = this.state.shipments.find(s => s.id === id);
+        if (!ship || !ship.location) return;
+
+        this.showModal('modal-view-map');
+        
+        setTimeout(() => {
+            if (!this.factoryMap) {
+                this.factoryMap = L.map('factory-view-map').setView([ship.location.lat, ship.location.lng], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(this.factoryMap);
+                this.factoryMarker = L.marker([ship.location.lat, ship.location.lng]).addTo(this.factoryMap);
+            } else {
+                this.factoryMap.setView([ship.location.lat, ship.location.lng], 15);
+                this.factoryMarker.setLatLng([ship.location.lat, ship.location.lng]);
+                this.factoryMap.invalidateSize();
+            }
+        }, 100);
+    },
+
+    openInGoogleMaps() {
+        const ship = this.state.shipments.find(s => s.id === this.state.activeShipmentId);
+        if (ship && ship.location) {
+            window.open(`https://www.google.com/maps?q=${ship.location.lat},${ship.location.lng}`, '_blank');
+        }
+    },
+
+    openTrackingModal(id) {
+        const ship = this.state.shipments.find(s => s.id === id);
+        if (!ship) return;
+        
+        this.showModal('modal-track');
+        this.renderTrackingTimeline(ship);
+        
+        setTimeout(() => {
+            this.initTrackMap(ship);
+        }, 300);
+    },
+
+    initTrackMap(ship) {
+        if (this.truckInterval) clearInterval(this.truckInterval);
+        
+        if (!this.trackMap) {
+            this.trackMap = L.map('track-map').setView([ship.location.lat, ship.location.lng], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.trackMap);
+        } else {
+            this.trackMap.setView([ship.location.lat, ship.location.lng], 14);
+            this.trackMap.invalidateSize();
+        }
+
+        // Supplier Marker
+        if (this.trackSupplierMarker) this.trackMap.removeLayer(this.trackSupplierMarker);
+        this.trackSupplierMarker = L.marker([ship.location.lat, ship.location.lng]).addTo(this.trackMap)
+            .bindPopup("موقعك المستلم").openPopup();
+
+        // Factory/Truck simulation
+        if (this.truckMarker) this.trackMap.removeLayer(this.truckMarker);
+        
+        if (ship.status === 'scheduled') {
+            const startLat = ship.location.lat - 0.008;
+            const startLng = ship.location.lng - 0.012;
+            const destination = [ship.location.lat, ship.location.lng];
+            const startPoint = [startLat, startLng];
+
+            // Add a route line (Polyline)
+            const routeLine = L.polyline([startPoint, destination], {
+                color: '#10b981',
+                weight: 4,
+                dashArray: '10, 10',
+                opacity: 0.6
+            }).addTo(this.trackMap);
+
+            // Fit bounds so both points are visible
+            this.trackMap.fitBounds(L.latLngBounds(startPoint, destination), { padding: [50, 50] });
+            
+            this.truckMarker = L.marker(startPoint, {
+                icon: L.divIcon({ 
+                    html: '<div class="truck-wrapper">🚚</div>', 
+                    className: 'truck-emoji-icon', 
+                    iconSize: [45, 45],
+                    iconAnchor: [22, 22] 
+                })
+            }).addTo(this.trackMap)
+            .bindPopup("الشاحنة متجهة إليك حالياً ⚡")
+            .openPopup();
+
+            let progress = 0;
+            this.truckInterval = setInterval(() => {
+                progress += 0.005; 
+                if (progress >= 1) {
+                    clearInterval(this.truckInterval);
+                    this.truckMarker.setLatLng(destination);
+                    this.truckMarker.setPopupContent("وصلت الشاحنة!");
+                    return;
+                }
+                const currentLat = startLat + (ship.location.lat - startLat) * progress;
+                const currentLng = startLng + (ship.location.lng - startLng) * progress;
+                this.truckMarker.setLatLng([currentLat, currentLng]);
+                
+                // Adjust map follow (optional but nice)
+                // this.trackMap.panTo([currentLat, currentLng]);
+            }, 60);
+        } else if (ship.status === 'pending') {
+            // Show that we're waiting for the factory
+            L.popup()
+                .setLatLng([ship.location.lat, ship.location.lng])
+                .setContent("⏰ بانتظار قبول الطلب من المصنع وجدولة استلامه لتبدأ الشاحنة بالتحرك")
+                .openOn(this.trackMap);
+        }
+    },
+
+    renderTrackingTimeline(ship) {
+        const timeline = document.getElementById('track-timeline');
+        const statusCard = document.getElementById('track-status-card');
+        
+        const stages = [
+            { id: 'sent', label: 'تم إرسال الطلب بنجاح', icon: '📝', data: ship.createdAt },
+            { id: 'scheduled', label: 'تم القبول وجدولة موعد الاستلام', icon: '📅', data: ship.pickupTime },
+            { id: 'weighted', label: 'تم الاستلام وتأكيد الوزن', icon: '⚖️', data: ship.actualWeight },
+            { id: 'completed', label: 'تم اكتمال العملية بنجاح', icon: '✅', data: ship.restaurantConfirmed === 'confirmed' ? 'مكتمل' : null },
+        ];
+
+        // Determine current progress
+        let activeIdx = 0;
+        if (ship.status === 'pending') activeIdx = 0;
+        else if (ship.status === 'scheduled') activeIdx = 1;
+        else if (ship.status === 'delivered') activeIdx = 2;
+        else if (ship.status === 'confirmed') activeIdx = 3;
+
+        statusCard.innerHTML = `
+            <div style="font-size: 2rem;">${stages[activeIdx].icon}</div>
+            <div>
+                <p style="font-weight: 800; color: var(--primary-dark); font-size: 1rem;">الحالة الحالية: ${this.STATUS_MAP[ship.status].label}</p>
+                <p style="font-size: 0.8rem; opacity: 0.7;">طلبك الان في مرحلة ${stages[activeIdx].label}</p>
+            </div>
+        `;
+
+        timeline.innerHTML = stages.map((s, i) => {
+            const isCompleted = i <= activeIdx;
+            const isCurrent = i === activeIdx;
+            return `
+                <div class="timeline-item ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}">
+                    <div class="timeline-dot">
+                        ${isCompleted ? '✓' : ''}
+                    </div>
+                    <div class="timeline-content">
+                        <h5>${s.label}</h5>
+                        ${s.data ? `<p>${typeof s.data === 'string' && s.data.includes('T') ? new Date(s.data).toLocaleString('ar-IQ') : (s.data + (s.id === 'weighted' ? ' ' + ship.unit : ''))}</p>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
     },
 
     selectMaterial(matKey) {
@@ -241,6 +593,7 @@ const app = {
 
     submitCollection() {
         const weight = document.getElementById('col-weight').value;
+        const phone = document.getElementById('col-mng-phone').value;
         if (!weight) return;
 
         const newShipment = {
@@ -255,13 +608,20 @@ const app = {
             actualWeight: null,
             restaurantConfirmed: null,
             photo: this.state.collectionPhoto,
+            managementPhone: phone,
+            location: this.state.selectedLatLng,
             createdAt: new Date().toISOString()
         };
 
         this.state.shipments.unshift(newShipment);
         this.save();
         this.closeModal('modal-collect');
+        this.showToast("تم إرسال طلب التجميع بنجاح!", "success");
+        this.playSound('success');
         this.render();
+        // Clear inputs
+        document.getElementById('col-weight').value = "";
+        document.getElementById('col-mng-phone').value = "";
     },
 
     respondToWeight(id, response) {
@@ -297,6 +657,8 @@ const app = {
             ship.pickupTime = time;
             this.save();
             this.closeModal('modal-pickup');
+            this.showToast("تمت جدولة الاستلام بنجاح!", "success");
+            this.playSound('success');
             this.render();
         }
     },
@@ -327,6 +689,28 @@ const app = {
         }
     },
 
+    // --- ANNOUNCEMENT ACTIONS ---
+    submitAnnouncement() {
+        const msg = document.getElementById('adm-announcement-input').value;
+        if (!msg) return;
+
+        this.state.announcement = {
+            message: msg,
+            date: new Date().toISOString(),
+            id: 'ann' + Date.now()
+        };
+        this.save();
+        this.showToast("تم نشر الإعلان بنجاح!", "success");
+        document.getElementById('adm-announcement-input').value = "";
+        this.render();
+    },
+
+    deleteAnnouncement() {
+        this.state.announcement = null;
+        this.save();
+        this.render();
+    },
+
     // --- MODAL HELPERS ---
     showModal(id) {
         const el = document.getElementById(id);
@@ -345,9 +729,35 @@ const app = {
         const page = this.state.currentPage;
         
         if (page === 'auth') this.renderAuth();
-        if (page === 'restaurant') this.renderRestaurant();
+        if (page === 'restaurant') {
+            this.renderRestaurant();
+            this.renderSupplierChart();
+        }
         if (page === 'factory') this.renderFactory();
-        if (page === 'admin') this.renderAdmin();
+        if (page === 'admin') {
+            this.renderAdmin();
+            // Handle tabs
+            document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`admin-view-${this.state.adminTab}`).classList.add('active');
+            
+            // Update all tab buttons
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => {
+                const onClickAttr = btn.getAttribute('onclick') || "";
+                if (onClickAttr.includes(`'${this.state.adminTab}'`)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            if (this.state.adminTab === 'users') this.renderAdminUsers();
+            if (this.state.adminTab === 'logs') this.renderAdminLogs();
+            if (this.state.adminTab === 'approvals') this.renderAdminApprovals();
+            if (this.state.adminTab === 'overview') this.renderAdminMaterialChart();
+        }
     },
 
     renderAuth() {
@@ -357,7 +767,7 @@ const app = {
         document.getElementById('auth-emoji').innerText = role === 'admin' ? '🔐' : (role === 'restaurant' ? '🍽️' : '🏭');
         document.getElementById('auth-title').innerText = 
             role === 'admin' ? 'دخول الإدارة' : 
-            (mode === 'login' ? (role === 'restaurant' ? 'تسجيل دخول المطعم' : 'تسجيل دخول المصنع') : (role === 'restaurant' ? 'إنشاء حساب مطعم' : 'إنشاء حساب مصنع'));
+            (mode === 'login' ? (role === 'restaurant' ? 'تسجيل دخول المورد' : 'تسجيل دخول المصنع') : (role === 'restaurant' ? 'إنشاء حساب مورد' : 'إنشاء حساب مصنع'));
         
         document.getElementById('auth-toggle-container').style.display = role === 'admin' ? 'none' : 'flex';
         document.getElementById('toggle-login').className = mode === 'login' ? 'active' : '';
@@ -377,14 +787,24 @@ const app = {
 
         document.getElementById('res-user-name').innerText = user.name;
         
-        const myShips = this.state.shipments.filter(s => s.restaurantId === user.id);
-        const confirmed = myShips.filter(s => s.status === 'confirmed').length;
-        const pendingConf = myShips.filter(s => s.status === 'delivered' && !s.restaurantConfirmed).length;
-
-        document.getElementById('res-total-orders').innerText = myShips.length;
-        document.getElementById('res-confirmed-orders').innerText = confirmed;
-        document.getElementById('res-pending-confirm').innerText = pendingConf;
-        document.getElementById('res-shipment-count').innerText = myShips.length;
+        // Render Announcement
+        const annContainer = document.getElementById('res-announcement-container');
+        if (this.state.announcement) {
+            annContainer.innerHTML = `
+                <div class="announcement-banner animate-slide-up" style="background: linear-gradient(135deg, #fef3c7, #fffbeb); border: 2px solid #f59e0b; padding: 1.2rem; border-radius: 20px; margin-bottom: 2rem; position: relative;">
+                    <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                        <span style="font-size: 1.8rem;">📢</span>
+                        <div>
+                            <h4 style="color: #92400e; margin-bottom: 0.3rem;">تنبيه هام من الإدارة</h4>
+                            <p style="font-size: 0.9rem; color: #b45309; line-height: 1.5;">${this.state.announcement.message}</p>
+                            <p style="font-size: 0.7rem; color: #b45309; opacity: 0.6; margin-top: 0.5rem;">${new Date(this.state.announcement.date).toLocaleString('ar-IQ')}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            annContainer.innerHTML = "";
+        }
 
         // Alerts for weight confirmation
         const alertsContainer = document.getElementById('res-alerts-container');
@@ -432,6 +852,7 @@ const app = {
                                 <h4>${mat.label}</h4>
                                 <p>${s.weight} ${s.unit}</p>
                                 ${s.pickupTime ? `<p style="color: #059669; font-weight: 700; margin-top: 0.3rem;">🕐 موعد الاستلام: ${new Date(s.pickupTime).toLocaleString('ar-IQ')}</p>` : ''}
+                                <button class="btn-track-mini" onclick="app.openTrackingModal('${s.id}')">تتبع الطلب 🚚</button>
                             </div>
                         </div>
                         <div class="status-badge" style="background: ${status.bg}; color: ${status.color}">
@@ -450,6 +871,25 @@ const app = {
 
         document.getElementById('fac-user-name').innerText = user.name;
         
+        // Render Announcement
+        const annContainer = document.getElementById('fac-announcement-container');
+        if (this.state.announcement) {
+            annContainer.innerHTML = `
+                <div class="announcement-banner animate-slide-up" style="background: linear-gradient(135deg, #fef3c7, #fffbeb); border: 2px solid #f59e0b; padding: 1.2rem; border-radius: 20px; margin-bottom: 2rem; position: relative;">
+                    <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                        <span style="font-size: 1.8rem;">📢</span>
+                        <div>
+                            <h4 style="color: #92400e; margin-bottom: 0.3rem;">تنبيه هام من الإدارة</h4>
+                            <p style="font-size: 0.9rem; color: #b45309; line-height: 1.5;">${this.state.announcement.message}</p>
+                            <p style="font-size: 0.7rem; color: #b45309; opacity: 0.6; margin-top: 0.5rem;">${new Date(this.state.announcement.date).toLocaleString('ar-IQ')}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            annContainer.innerHTML = "";
+        }
+        
         const pending = this.state.shipments.filter(s => s.status === 'pending');
         const scheduled = this.state.shipments.filter(s => s.status === 'scheduled');
         const reported = this.state.shipments.filter(s => s.status === 'reported');
@@ -463,8 +903,8 @@ const app = {
         if (reported.length > 0) {
             reportsContainer.innerHTML = `
                 <div class="weight-alert" style="border-color: #fca5a5; background: #fef2f2; margin-bottom: 2rem;">
-                    <p style="font-weight: 800; color: #b91c1c;">⚠️ يوجد ${reported.length} بلاغ من المطاعم</p>
-                    <p style="font-size: 0.8rem; margin-top: 0.3rem; color: #991b1b;">الأوزان غير متطابقة — يرجى التواصل مع المطاعم</p>
+                    <p style="font-weight: 800; color: #b91c1c;">⚠️ يوجد ${reported.length} بلاغ من الموردين</p>
+                    <p style="font-size: 0.8rem; margin-top: 0.3rem; color: #991b1b;">الأوزان غير متطابقة — يرجى التواصل مع المورد</p>
                 </div>
             `;
         } else {
@@ -488,6 +928,12 @@ const app = {
                             </div>
                         </div>
                         ${s.photo ? `<img src="${s.photo}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 12px; margin-bottom: 1rem;">` : ''}
+                        
+                        <div style="background: #f8fafc; padding: 0.8rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid #e2e8f0;">
+                            ${s.managementPhone ? `<p style="font-size: 0.85rem; margin-bottom: 0.5rem;">📞 هاتف الإدارة: <a href="tel:${s.managementPhone}" style="color: #2563eb; font-weight: 700;">${s.managementPhone}</a></p>` : ''}
+                            ${s.location ? `<button class="btn-secondary" style="width: 100%; font-size: 0.8rem; padding: 0.5rem; background: #fff; border: 1px solid #cbd5e1;" onclick="app.openMapModal('${s.id}')">📍 عرض الموقع على الخريطة</button>` : ''}
+                        </div>
+
                         <button class="btn-submit" style="background: #2563eb; padding: 0.8rem;" onclick="app.openPickupModal('${s.id}')">📅 تحديد وقت الاستلام</button>
                     </div>
                 `;
@@ -536,6 +982,15 @@ const app = {
         document.getElementById('adm-confirmed-val').innerText = confirmed.length;
         document.getElementById('adm-reported-val').innerText = ships.filter(s => s.status === 'reported').length;
 
+        // Render Announcement Status for Admin
+        const annPreview = document.getElementById('adm-current-announcement');
+        if (this.state.announcement) {
+            annPreview.style.display = 'block';
+            document.getElementById('adm-announcement-text').innerText = this.state.announcement.message;
+        } else {
+            annPreview.style.display = 'none';
+        }
+
         // Material Distribution Bars
         const matStats = document.getElementById('adm-material-stats');
         matStats.innerHTML = Object.entries(this.MATERIALS).map(([key, mat]) => {
@@ -574,8 +1029,224 @@ const app = {
                 </div>
             `;
         }).join('');
+    },
+
+    renderAdminUsers() {
+        const container = document.getElementById('adm-users-list');
+        const res = this.state.users.restaurants.map(u => ({...u, role: 'مورد'}));
+        const fac = this.state.users.factories.map(u => ({...u, role: 'مصنع'}));
+        const all = [...res, ...fac];
+
+        container.innerHTML = all.map(u => `
+            <div class="admin-user-item">
+                <div>
+                    <span style="font-size: 0.7rem; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">${u.role}</span>
+                    <strong>${u.name}</strong>
+                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">📧 ${u.email} | 📞 ${u.phone}</p>
+                </div>
+                <button class="btn-delete" onclick="app.deleteUser('${u.role === 'مورد' ? 'restaurant' : 'factory'}', '${u.id}')">حذف الحساب</button>
+            </div>
+        `).join('');
+    },
+
+    deleteUser(role, id) {
+        if (!confirm("هل أنت متأكد من حذف هذا الحساب؟")) return;
+        const poolKey = role === 'restaurant' ? 'restaurants' : 'factories';
+        this.state.users[poolKey] = this.state.users[poolKey].filter(u => u.id !== id);
+        this.save();
+        this.renderAdminUsers();
+        this.showToast("تم حذف المستخدم بنجاح", "error");
+    },
+
+    renderAdminLogs() {
+        const container = document.getElementById('adm-all-shipments');
+        container.innerHTML = this.state.shipments.map(s => {
+            const mat = this.MATERIALS[s.materialType];
+            const status = this.STATUS_MAP[s.status];
+            return `
+                <tr>
+                    <td><strong>${s.restaurantName}</strong></td>
+                    <td>${mat.emoji} ${mat.label}</td>
+                    <td>${s.weight}${s.unit}</td>
+                    <td>${new Date(s.createdAt).toLocaleDateString('ar-IQ')}</td>
+                    <td>${s.factoryName || '--'}</td>
+                    <td><span class="status-badge" style="background: ${status.bg}; color: ${status.color}">${status.label}</span></td>
+                </tr>
+            `;
+        }).join('');
+    },
+
+    exportToCSV() {
+        const rows = [
+            ["ID", "Supplier", "Material", "Declared Weight", "Actual Weight", "Status", "Date"],
+            ...this.state.shipments.map(s => [
+                s.id, s.restaurantName, s.materialType, s.weight + s.unit, s.actualWeight || '--', s.status, s.createdAt
+            ])
+        ];
+        const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "recycling_report.csv");
+        document.body.appendChild(link);
+        link.click();
+    },
+
+    // --- CHARTS ---
+    renderSupplierChart() {
+        const ctx = document.getElementById('supplier-chart');
+        if (!ctx) return;
+        
+        if (this.state.charts.supplier) this.state.charts.supplier.destroy();
+
+        const userShipments = this.state.shipments.filter(s => s.restaurantId === this.state.currentUser.id);
+        const labels = Object.values(this.MATERIALS).map(m => m.label);
+        const data = Object.keys(this.MATERIALS).map(key => {
+            return userShipments.filter(s => s.materialType === key).reduce((sum, s) => sum + (s.actualWeight || s.weight), 0);
+        });
+
+        this.state.charts.supplier = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: Object.values(this.MATERIALS).map(m => m.color),
+                    borderWidth: 0
+                }]
+            },
+            options: { cutout: '70%', plugins: { legend: { position: 'bottom' } } }
+        });
+    },
+
+    renderAdminMaterialChart() {
+        const ctx = document.getElementById('admin-material-chart');
+        if (!ctx) return;
+
+        if (this.state.charts.admin) this.state.charts.admin.destroy();
+
+        const labels = Object.values(this.MATERIALS).map(m => m.label);
+        const data = Object.keys(this.MATERIALS).map(key => {
+            return this.state.shipments.filter(s => s.materialType === key).reduce((sum, s) => sum + (s.actualWeight || 0), 0);
+        });
+
+        this.state.charts.admin = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'إجمالي الوزن المستلم (كغ)',
+                    data: data,
+                    backgroundColor: Object.values(this.MATERIALS).map(m => m.color + 'aa'),
+                    borderColor: Object.values(this.MATERIALS).map(m => m.color),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    },
+
+    renderAdminGlobalMap() {
+        const mapContainer = document.getElementById('admin-global-map');
+        if (!mapContainer) return;
+
+        // Cleanup existing map if it exists
+        if (this.state.charts.adminGlobalMap) {
+            this.state.charts.adminGlobalMap.remove();
+        }
+
+        // Initialize Map
+        const map = L.map('admin-global-map').setView([33.3152, 44.3661], 12);
+        this.state.charts.adminGlobalMap = map;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add markers for all active shipments
+        const activeShipments = this.state.shipments.filter(s => s.status !== 'confirmed');
+        activeShipments.forEach(s => {
+            if (s.location) {
+                const mat = this.MATERIALS[s.materialType];
+                const marker = L.marker([s.location.lat, s.location.lng]).addTo(map);
+                
+                const popupContent = `
+                    <div style="direction: rtl; text-align: right; font-family: 'Tajawal', sans-serif;">
+                        <h4 style="margin-bottom: 5px;">${s.restaurantName}</h4>
+                        <p style="font-size: 0.8rem; margin-bottom: 5px;">${mat.emoji} ${mat.label} - ${s.weight}${s.unit}</p>
+                        <p style="font-size: 0.7rem; color: #666;">الحالة: ${this.STATUS_MAP[s.status].label}</p>
+                        <button onclick="app.showAdminTab('logs')" style="background: #10b981; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; margin-top: 8px; width: 100%;">عرض التفاصيل</button>
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+            }
+        });
+        
+        // Auto-fit bounds if there are markers
+        if (activeShipments.length > 0) {
+            const group = new L.featureGroup(activeShipments.filter(s => s.location).map(s => L.marker([s.location.lat, s.location.lng])));
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+    },
+
+    renderAdminApprovals() {
+        const container = document.getElementById("adm-pending-approvals");
+        if (!container) return;
+
+        const pending = this.state.users.factories.filter(f => !f.isApproved);
+        if (pending.length === 0) {
+            container.innerHTML = `<div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
+                <p style="font-size: 3rem; margin-bottom: 1rem;">🏖️</p>
+                <p>لا توجد طلبات انضمام معلقة حالياً</p>
+            </div>`;
+            return;
+        }
+
+        container.innerHTML = pending.map(f => `
+            <div class="card approval-card animate-slide-up">
+                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+                    <div class="role-icon" style="background: var(--primary-light); width: 50px; height: 50px; font-size: 1.5rem;">🏭</div>
+                    <div>
+                        <h4 style="font-weight: 800; font-size: 1.1rem;">${f.name}</h4>
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">${f.email}</p>
+                    </div>
+                </div>
+                <div style="background: var(--bg-main); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; font-size: 0.85rem;">
+                    <p style="margin-bottom: 0.5rem;"><strong>📞 الهاتف:</strong> ${f.phone || "غير متوفر"}</p>
+                    <p><strong>📅 التاريخ:</strong> ${new Date().toLocaleDateString("ar-EG")}</p>
+                </div>
+                <div style="display: flex; gap: 0.8rem;">
+                    <button class="btn-submit" onclick="app.approveFactory(\'${f.id}\')" style="flex: 2; padding: 0.7rem; font-size: 0.85rem;">✅ قبول</button>
+                    <button class="btn-secondary" onclick="app.rejectFactory(\'${f.id}\')" style="flex: 1; padding: 0.7rem; font-size: 0.85rem; background: #fee2e2; color: #ef4444; border: none;">❌ رفض</button>
+                </div>
+            </div>
+        `).join("");
+    },
+
+    approveFactory(id) {
+        const factory = this.state.users.factories.find(f => f.id === id);
+        if (factory) {
+            factory.isApproved = true;
+            this.showToast(`تمت الموافقة على ${factory.name} بنجاح!`, "success");
+            this.playSound("success");
+            this.save();
+            this.render();
+            if (this.state.adminTab === 'approvals') this.renderAdminApprovals();
+        }
+    },
+
+    rejectFactory(id) {
+        if (confirm("هل أنت متأكد من رفض وحذف هذا الطلب؟")) {
+            this.state.users.factories = this.state.users.factories.filter(f => f.id !== id);
+            this.showToast("تم رفض وحذف الطلب.", "info");
+            this.save();
+            this.render();
+            if (this.state.adminTab === 'approvals') this.renderAdminApprovals();
+        }
     }
 };
 
-// Start App
 window.onload = () => app.init();

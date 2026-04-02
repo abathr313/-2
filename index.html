@@ -1,44 +1,58 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة التدوير الذكية | Recycling Platform</title>
-    <meta name="description" content="نظام ذكي لإدارة المواد القابلة لإعادة التدوير للمطاعم والمصانع">
+    <title>لوجبا | المنصة الذكية لإدارة الموارد</title>
+    <meta name="description" content="نظام ذكي لإدارة الموارد القابلة للاستعادة للمطاعم والمصانع">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
 
     <!-- 1. LANDING PAGE -->
     <section id="landing-page" class="page-container active animate-fade-in">
         <header class="landing-nav">
-            <div class="nav-logo">♻️ منصة التدوير</div>
-            <div class="nav-links">
-                <button onclick="app.showAdminLogin()" class="btn-admin-nav">🔐 الإدارة</button>
+            <div class="nav-logo">
+                <img src="1/5366270962015344591.jpg" class="brand-logo sm" alt="لوجبا"> لوجبا
+            </div>
+            <div class="nav-links" style="display: flex; gap: 1rem; align-items: center;">
+                <button onclick="app.toggleTheme()" class="glass-btn" id="theme-toggle"
+                    style="padding: 0.5rem; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🌓</button>
+                <button onclick="app.showAdminLogin()" class="glass-btn">🔐 الإدارة</button>
             </div>
         </header>
 
         <main class="landing-hero">
             <div class="hero-content animate-slide-up">
-                <div class="hero-logo">♻️</div>
-                <h1 class="hero-title">منصة التجميع الذكية</h1>
-                <p class="hero-subtitle">الحل الأمثل لإدارة وتدوير المخلفات بكفاءة عالية</p>
+                <div class="hero-logo" style="margin-bottom: 0.5rem;">
+                    <img src="1/5366270962015344591.jpg" class="brand-logo lg" alt="لوجبا" style="width: 100px; height: 100px;">
+                </div>
+                <h1 class="hero-title">لوجبا</h1>
+                <p class="hero-subtitle">الحل العالمي المبتكر لإدارة واستثمار الموارد برؤية مستدامة</p>
             </div>
 
             <div class="login-section animate-slide-up">
                 <h2 class="section-tag">خيار تسجيل الدخول</h2>
                 <div class="role-cards-grid">
                     <div class="role-card" onclick="app.showAuth('restaurant')">
-                        <div class="role-icon">🍽️</div>
+                        <div class="role-icon">📦</div>
                         <div class="role-info">
-                            <h3>دخول المطعم</h3>
+                            <h3>دخول المورد</h3>
                             <p>طلب تجميع المواد وتتبع الشحنات</p>
                         </div>
                         <div class="card-arrow">←</div>
                     </div>
 
                     <div class="role-card" onclick="app.showAuth('factory')">
-                        <div class="role-icon" style="background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4);">🏭</div>
+                        <div class="role-icon"
+                            style="background: rgba(234, 88, 12, 0.15); border-color: rgba(234, 88, 12, 0.3);">🏭</div>
                         <div class="role-info">
                             <h3>دخول المصنع</h3>
                             <p>استلام الشحنات وتأكيد الأوزان</p>
@@ -47,6 +61,35 @@
                     </div>
                 </div>
             </div>
+            <!-- ABOUT SECTION -->
+            <section class="about-container animate-slide-up" style="margin-top: 4rem;">
+                <h2 class="section-tag">نبذة عن المؤسس</h2>
+                <div class="glass-card about-card">
+                    <div class="about-image">
+                        <img src="1/5366270962015344660.jpg" alt="المؤسس">
+                    </div>
+                    <div class="about-text">
+                        <h3>رسالة لوجبا</h3>
+                        <p>"لوجبا | أوتادُ الأرض
+                            الرئيسة التنفيذية: رسل الكتيب
+                            تاريخ التأسيس: ٢٠٢٦ / ٤ / ٢
+                            ماذا تعني لوجبا؟
+                            هي الوتد السومري الأصيل الذي يعني "الإنسان الثابت"؛ وهو الوصف الذي خلّده أجدادنا للشهيد
+                            الصامد. اخترنا هذا الاسم لنكون أوتاداً لا تتزحزح في خدمة هذه الأرض، وحراساً أوفياء لتربتها.
+                            ما هي مهمتنا؟
+                            تنقية بيئة العراق من سموم الاستهلاك. نحن نعمل على تحويل التلوث إلى موارد مستدامة تحمي بيئتنا
+                            وصحتنا، ونعيد صياغة العلاقة بين الإنسان ومحيطه بأسلوب لوجستي متطور.
+                            ما الهدف وأين يصبُّ هذا الجهد؟
+                            هدفنا الأسمى هو تذكير الشعب برسالة الشهداء، وهي الحفاظ على طُهر هذا الوطن. لذا، فإن جزءاً
+                            كبيراً من الأرباح المتحققة من المشروع يُخصص لتمويل مشاريع بيئية واقتصادية تهدف إلى تخليد
+                            أسماء الشهداء، وفق خطة استراتيجية مستقبلية واضحة المعالم ."</p>
+                        <div class="programmer-info">
+                            <p><strong>المبرمج:</strong> اباذر ماجد</p>
+                            <p><strong>تاريخ الإنشاء:</strong> 2 أبريل 2024</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
     </section>
 
@@ -55,7 +98,8 @@
         <div class="auth-card animate-slide-up">
             <button class="btn-back" onclick="app.navigate('landing')">← رجوع</button>
             <div class="auth-header">
-                <span id="auth-emoji" class="emoji">🍽️</span>
+                <p class="auth-motto">"لوجبا.. أمانةُ الأرض، ووفاءُ الذاكرة. سجل دخولك للمشاركة في الرسالة"</p>
+                <span id="auth-emoji" class="emoji">📦</span>
                 <h2 id="auth-title">تسجيل دخول</h2>
             </div>
 
@@ -69,7 +113,7 @@
             <form id="auth-form" onsubmit="app.handleAuth(event)">
                 <div id="field-name" class="form-group" style="display: none;">
                     <label for="reg-name">الاسم</label>
-                    <input type="text" id="reg-name" class="form-input" placeholder="اسم المطعم أو المصنع">
+                    <input type="text" id="reg-name" class="form-input" placeholder="اسم المورد أو المصنع">
                 </div>
                 <div class="form-group">
                     <label for="auth-email">البريد الإلكتروني</label>
@@ -86,7 +130,8 @@
                 <button type="submit" class="btn-submit">دخول</button>
             </form>
 
-            <p id="demo-credentials" style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 1.5rem;">
+            <p id="demo-credentials"
+                style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 1.5rem;">
                 للتجربة: <span id="demo-email">r@r.com</span> — كلمة المرور: 123
             </p>
         </div>
@@ -98,10 +143,10 @@
             <div class="top-bar">
                 <div class="user-info">
                     <p>مرحباً،</p>
-                    <h2 id="res-user-name">اسم المطعم</h2>
+                    <h2 id="res-user-name">اسم المورد</h2>
                 </div>
                 <div class="header-actions">
-                    <span class="badge-role">🍽️ مطعم</span>
+                    <span class="badge-role">📦 مورد</span>
                     <button class="btn-logout" onclick="app.logout()">خروج</button>
                 </div>
             </div>
@@ -122,20 +167,27 @@
         </header>
 
         <main class="dash-content">
-            <div class="main-dash-column">
-                <!-- Weight Confirmation Alerts -->
-                <div id="res-alerts-container"></div>
+            <!-- Global Announcement -->
+            <div id="res-announcement-container"></div>
 
-                <h3 class="section-title">طلباتي (<span id="res-shipment-count">0</span>)</h3>
-                <div id="res-shipments-list">
-                    <!-- Shipments will be rendered here -->
-                </div>
+            <!-- Weight Confirmation Alerts -->
+            <div id="res-alerts-container"></div>
+
+            <h3 class="section-title">طلباتي (<span id="res-shipment-count">0</span>)</h3>
+            <div id="res-shipments-list">
+                <!-- Shipments will be rendered here -->
+            </div>
             </div>
 
             <div class="side-dash-column">
                 <button class="cta-button" onclick="app.openCollectionModal()" style="margin-top: 0;">
                     <span>♻️</span> طلب تجميع
                 </button>
+
+                <div class="card" style="margin-top: 1.5rem; padding: 1.2rem;">
+                    <h3 class="section-title" style="margin-bottom: 1rem;">📊 تحليل المساهمة</h3>
+                    <canvas id="supplier-chart" height="250"></canvas>
+                </div>
             </div>
         </main>
     </section>
@@ -171,6 +223,9 @@
 
         <main class="dash-content">
             <div class="main-dash-column">
+                <!-- Global Announcement -->
+                <div id="fac-announcement-container"></div>
+
                 <h3 class="section-title">🔔 طلبات جديدة</h3>
                 <div id="fac-pending-list"></div>
 
@@ -194,10 +249,10 @@
                 </div>
                 <button class="btn-logout" onclick="app.logout()">خروج</button>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+            <div class="stats-grid-admin">
                 <div class="stat-item">
                     <p class="stat-val" id="adm-res-count">0</p>
-                    <p class="stat-label">مطاعم</p>
+                    <p class="stat-label">موردين</p>
                 </div>
                 <div class="stat-item">
                     <p class="stat-val" id="adm-fac-count">0</p>
@@ -211,40 +266,121 @@
         </header>
 
         <main class="dash-content">
-            <div class="main-dash-column">
-                <div class="admin-tons-hero">
-                    <div class="eco-bg">♻️</div>
-                    <p class="tons-label">إجمالي الأطنان الموردة</p>
-                    <h1 class="tons-val" id="adm-total-tons">0.000</h1>
-                    <p style="opacity: 0.6; font-size: 0.9rem;">طن — (<span id="adm-total-kg">0</span> كغ)</p>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin-bottom: 2rem;">
-                    <div class="card" style="text-align: center; padding: 1rem;">
-                        <p style="font-size: 1.5rem;">⏳</p>
-                        <p id="adm-pending-val" style="font-weight: 800; font-size: 1.2rem; color: var(--warning);">0</p>
-                        <p style="font-size: 0.7rem; color: var(--text-muted);">بانتظار المصنع</p>
-                    </div>
-                    <div class="card" style="text-align: center; padding: 1rem;">
-                        <p style="font-size: 1.5rem;">✅</p>
-                        <p id="adm-confirmed-val" style="font-weight: 800; font-size: 1.2rem; color: var(--primary-dark);">0</p>
-                        <p style="font-size: 0.7rem; color: var(--text-muted);">تم التأكيد</p>
-                    </div>
-                    <div class="card" style="text-align: center; padding: 1rem;">
-                        <p style="font-size: 1.5rem;">⚠️</p>
-                        <p id="adm-reported-val" style="font-weight: 800; font-size: 1.2rem; color: var(--danger);">0</p>
-                        <p style="font-size: 0.7rem; color: var(--text-muted);">بلاغات</p>
-                    </div>
-                </div>
-
-                <h3 class="section-title">آخر الشحنات</h3>
-                <div id="adm-recent-shipments" class="card" style="padding: 0;"></div>
+            <!-- Admin Navigation Tabs -->
+            <div class="admin-tabs">
+                <button class="tab-btn active" onclick="app.switchAdminTab('overview')">الرؤية العامة</button>
+                <button class="tab-btn" onclick="app.switchAdminTab('approvals')">طلبات المعامل 🔔</button>
+                <button class="tab-btn" onclick="app.switchAdminTab('global-map')">الخريطة الشاملة 📍</button>
+                <button class="tab-btn" onclick="app.switchAdminTab('users')">إدارة المستخدمين</button>
+                <button class="tab-btn" onclick="app.switchAdminTab('logs')">سجل الشحنات</button>
             </div>
 
-            <div class="side-dash-column">
-                <h3 class="section-title">توزيع المواد</h3>
-                <div id="adm-material-stats" class="card">
-                    <!-- Material progress bars will be rendered here -->
+            <div id="admin-view-overview" class="admin-tab-content active">
+                <div class="main-dash-column">
+                    <div class="admin-tons-hero">
+                        <div class="eco-bg">♻️</div>
+                        <p class="tons-label">إجمالي الأطنان الموردة</p>
+                        <h1 class="tons-val" id="adm-total-tons">0.000</h1>
+                        <p style="opacity: 0.6; font-size: 0.9rem;">طن — (<span id="adm-total-kg">0</span> كغ)</p>
+                    </div>
+
+                    <div class="stats-grid-admin" style="margin-bottom: 2rem; gap: 0.8rem;">
+                        <div class="card" style="text-align: center; padding: 1rem;">
+                            <p style="font-size: 1.5rem;">⏳</p>
+                            <p id="adm-pending-val" style="font-weight: 800; font-size: 1.2rem; color: var(--warning);">
+                                0</p>
+                            <p style="font-size: 0.7rem; color: var(--text-muted);">بانتظار المصنع</p>
+                        </div>
+                        <div class="card" style="text-align: center; padding: 1rem;">
+                            <p style="font-size: 1.5rem;">✅</p>
+                            <p id="adm-confirmed-val"
+                                style="font-weight: 800; font-size: 1.2rem; color: var(--primary-dark);">0</p>
+                            <p style="font-size: 0.7rem; color: var(--text-muted);">تم التأكيد</p>
+                        </div>
+                        <div class="card" style="text-align: center; padding: 1rem;">
+                            <p style="font-size: 1.5rem;">⚠️</p>
+                            <p id="adm-reported-val" style="font-weight: 800; font-size: 1.2rem; color: var(--danger);">
+                                0</p>
+                            <p style="font-size: 0.7rem; color: var(--text-muted);">بلاغات</p>
+                        </div>
+                    </div>
+
+                    <h3 class="section-title">آخر الشحنات</h3>
+                    <div id="adm-recent-shipments" class="card" style="padding: 0;"></div>
+                </div>
+
+                <div class="side-dash-column">
+                    <div class="card" style="padding: 1.2rem; border: 2.5px solid var(--primary); background: #f0fdf4;">
+                        <h3 class="section-title" style="margin-bottom: 0.8rem; font-size: 1rem;">📢 إعلان عام</h3>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">اكتب رسالة ستظهر
+                            لجميع الموردين والمصانع:</p>
+                        <textarea id="adm-announcement-input" class="form-input"
+                            style="height: 100px; font-size: 0.9rem; margin-bottom: 1rem; resize: none;"
+                            placeholder="أهلاً بكم في منصتنا الجديدة..."></textarea>
+                        <div id="adm-current-announcement" style="margin-bottom: 1rem; display: none;">
+                            <p style="font-size: 0.7rem; color: var(--primary-dark); font-weight: 700;">الإعلان الحالي:
+                            </p>
+                            <div
+                                style="background: white; padding: 0.8rem; border-radius: 12px; font-size: 0.8rem; border: 1px solid #e2e8f0; position: relative;">
+                                <p id="adm-announcement-text"></p>
+                                <button onclick="app.deleteAnnouncement()"
+                                    style="position: absolute; left: 8px; top: 8px; border: none; background: #fee2e2; color: #ef4444; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 10px;">✕</button>
+                            </div>
+                        </div>
+                        <button class="btn-submit" onclick="app.submitAnnouncement()"
+                            style="padding: 0.8rem; font-size: 0.9rem;">نشر الإعلان 🚀</button>
+                    </div>
+
+                    <h3 class="section-title" style="margin-top: 1.5rem;">إحصاءات المواد</h3>
+                    <div id="adm-material-stats" class="card" style="padding: 1.2rem;"></div>
+
+                    <h3 class="section-title">توزيع المواد</h3>
+                    <div class="card" style="padding: 1.2rem;">
+                        <canvas id="admin-material-chart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div id="admin-view-approvals" class="admin-tab-content">
+                <h3 class="section-title">🔔 طلبات تسجيل المصانع الجديدة</h3>
+                <div id="adm-pending-approvals" class="approval-grid">
+                    <!-- Pending factory requests will be rendered here -->
+                </div>
+            </div>
+
+            <div id="admin-view-global-map" class="admin-tab-content">
+                <h3 class="section-title">📍 الخريطة الشاملة للطلبات</h3>
+                <div class="card" style="padding: 0; overflow: hidden; border-radius: 28px;">
+                    <div id="admin-global-map" style="height: 600px; background: #eee;"></div>
+                </div>
+            </div>
+
+            <div id="admin-view-users" class="admin-tab-content">
+                <h3 class="section-title">👥 مستخدمو المنصة</h3>
+                <div class="card" style="padding: 0;">
+                    <div id="adm-users-list"></div>
+                </div>
+            </div>
+
+            <div id="admin-view-logs" class="admin-tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 class="section-title">📜 سجل الشحنات الشامل</h3>
+                    <button class="btn-secondary" onclick="app.exportToCSV()"
+                        style="background: var(--primary); color: white; border: none;">💾 تصدير CSV</button>
+                </div>
+                <div class="card" style="padding: 0; overflow-x: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>المورد</th>
+                                <th>نوع المادة</th>
+                                <th>الوزن</th>
+                                <th>التاريخ</th>
+                                <th>المصنع</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adm-all-shipments"></tbody>
+                    </table>
                 </div>
             </div>
         </main>
@@ -257,28 +393,33 @@
                 <h3 id="modal-collect-title">♻️ اختر نوع المادة</h3>
                 <button class="btn-close" onclick="app.closeModal('modal-collect')">✕</button>
             </div>
-            
+
             <div id="col-step-1" class="material-grid">
-                <div class="mat-card" onclick="app.selectMaterial('plastic')" style="background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a;">
+                <div class="mat-card" onclick="app.selectMaterial('plastic')"
+                    style="background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a;">
                     <span class="emoji">🧴</span>
                     <span>بلاستك</span>
                 </div>
-                <div class="mat-card" onclick="app.selectMaterial('carton')" style="background: #fffbeb; border-color: #fcd34d; color: #92400e;">
+                <div class="mat-card" onclick="app.selectMaterial('carton')"
+                    style="background: #fffbeb; border-color: #fcd34d; color: #92400e;">
                     <span class="emoji">📦</span>
                     <span>كارتون</span>
                 </div>
-                <div class="mat-card" onclick="app.selectMaterial('oil')" style="background: #fff7ed; border-color: #fdba74; color: #c2410c;">
+                <div class="mat-card" onclick="app.selectMaterial('oil')"
+                    style="background: #fff7ed; border-color: #fdba74; color: #c2410c;">
                     <span class="emoji">🛢️</span>
                     <span>زيوت</span>
                 </div>
-                <div class="mat-card" onclick="app.selectMaterial('aluminum')" style="background: #f9fafb; border-color: #d1d5db; color: #4b5563;">
+                <div class="mat-card" onclick="app.selectMaterial('aluminum')"
+                    style="background: #f9fafb; border-color: #d1d5db; color: #4b5563;">
                     <span class="emoji">⚙️</span>
                     <span>ألمنيوم</span>
                 </div>
             </div>
 
             <div id="col-step-2" style="display: none;">
-                <div id="selected-mat-banner" class="shipment-item" style="box-shadow: none; border: 2px solid #ddd; margin-bottom: 1.5rem;">
+                <div id="selected-mat-banner" class="shipment-item"
+                    style="box-shadow: none; border: 2px solid #ddd; margin-bottom: 1.5rem;">
                     <!-- Banner for selected material -->
                 </div>
 
@@ -305,51 +446,121 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label>رقم هاتف الإدارة</label>
+                    <input type="tel" id="col-mng-phone" class="form-input" placeholder="077XXXXXXXX">
+                </div>
+
+                <div class="form-group">
+                    <label>تحديد الموقع (الخريطة)</label>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">يرجى تحريك العلامة
+                        لتحديد موقعك أو ابحث عن منطقتك:</p>
+                    <div class="map-search-container" style="margin-bottom: 0.5rem; display: flex; gap: 0.5rem;">
+                        <input type="text" id="map-search-query" class="form-input" placeholder="ابحث عن منطقة..."
+                            style="padding: 0.6rem;">
+                        <button class="btn-secondary" onclick="app.searchLocation()"
+                            style="padding: 0.6rem 1rem;">🔍</button>
+                    </div>
+                    <div id="map-picker"
+                        style="height: 200px; border-radius: 12px; background: #eee; border: 1px solid #ddd;"></div>
+                </div>
+
                 <button class="btn-submit" onclick="app.submitCollection()">إرسال الطلب ♻️</button>
-                <button class="btn-back" style="margin: 1rem auto 0; font-size: 0.8rem;" onclick="app.setCollectStep(1)">← تغيير المادة</button>
+                <button class="btn-back" style="margin: 1rem auto 0; font-size: 0.8rem;"
+                    onclick="app.setCollectStep(1)">← تغيير المادة</button>
             </div>
         </div>
     </div>
 
     <!-- MODAL: PICKUP TIME (FACTORY) -->
     <div id="modal-pickup" class="modal-overlay">
-        <div class="modal-content" style="border-radius: 24px; margin: auto; width: 90%; max-width: 420px; animation: fadeIn 0.2s;">
+        <div class="modal-content"
+            style="border-radius: 24px; margin: auto; width: 90%; max-width: 420px; animation: fadeIn 0.2s;">
             <h3 style="margin-bottom: 1.5rem;">📅 تحديد وقت الاستلام</h3>
-            <div id="pickup-ship-info" class="card" style="background: #f1f5f9; box-shadow: none; margin-bottom: 1.5rem;"></div>
-            
+            <div id="pickup-ship-info" class="card"
+                style="background: #f1f5f9; box-shadow: none; margin-bottom: 1.5rem;"></div>
+
             <div class="form-group">
                 <label>وقت الاستلام</label>
                 <input type="datetime-local" id="pickup-time-input" class="form-input">
             </div>
 
             <div class="btn-group" style="margin-top: 2rem;">
-                <button style="background: #f1f5f9; color: var(--text-main);" onclick="app.closeModal('modal-pickup')">إلغاء</button>
-                <button class="btn-confirm" onclick="app.confirmPickup()">إرسال للمطعم</button>
+                <button style="background: #f1f5f9; color: var(--text-main);"
+                    onclick="app.closeModal('modal-pickup')">إلغاء</button>
+                <button class="btn-confirm" onclick="app.confirmPickup()">إرسال للمورد</button>
             </div>
         </div>
     </div>
 
     <!-- MODAL: ACTUAL WEIGHT (FACTORY) -->
     <div id="modal-weight" class="modal-overlay">
-        <div class="modal-content" style="border-radius: 24px; margin: auto; width: 90%; max-width: 420px; animation: fadeIn 0.2s;">
+        <div class="modal-content"
+            style="border-radius: 24px; margin: auto; width: 90%; max-width: 420px; animation: fadeIn 0.2s;">
             <h3 style="margin-bottom: 1.5rem;">⚖️ الوزن الفعلي المستلم</h3>
-            <div id="weight-ship-info" class="card" style="background: #f1f5f9; box-shadow: none; margin-bottom: 1.5rem;"></div>
-            
+            <div id="weight-ship-info" class="card"
+                style="background: #f1f5f9; box-shadow: none; margin-bottom: 1.5rem;"></div>
+
             <div class="form-group">
                 <label>الوزن الفعلي المستلم</label>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <input type="number" id="actual-weight-input" class="form-input" style="font-size: 1.5rem; font-weight: 800; text-align: center;">
+                    <input type="number" id="actual-weight-input" class="form-input"
+                        style="font-size: 1.5rem; font-weight: 800; text-align: center;">
                     <span id="actual-weight-unit" style="font-weight: 900; color: var(--text-muted);">كغ</span>
                 </div>
             </div>
 
             <div class="btn-group" style="margin-top: 2rem;">
-                <button style="background: #f1f5f9; color: var(--text-main);" onclick="app.closeModal('modal-weight')">إلغاء</button>
+                <button style="background: #f1f5f9; color: var(--text-main);"
+                    onclick="app.closeModal('modal-weight')">إلغاء</button>
                 <button class="btn-confirm" onclick="app.submitWeight()">تأكيد الاستلام</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: VIEW LOCATION (FOR FACTORY) -->
+    <div id="modal-view-map" class="modal-overlay">
+        <div class="modal-content animate-slide-up" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>📍 موقع المورد</h3>
+                <button class="btn-close" onclick="app.closeModal('modal-view-map')">✕</button>
+            </div>
+            <div id="factory-view-map"
+                style="height: 350px; border-radius: 20px; background: #eee; border: 1px solid #ddd; margin-bottom: 1.5rem;">
+            </div>
+            <button class="btn-submit" onclick="app.openInGoogleMaps()">فتح في خرائط Google 🚗</button>
+        </div>
+    </div>
+
+    <!-- MODAL: ORDER TRACKING (FOR SUPPLIER) -->
+    <div id="modal-track" class="modal-overlay">
+        <div class="modal-content animate-slide-up"
+            style="max-width: 500px; padding: 0; overflow: hidden; border-radius: 32px;">
+            <div class="modal-header" style="padding: 1.5rem 1.5rem 1rem;">
+                <h3 id="modal-track-title">🚚 تتبع طلبك الحقيقي</h3>
+                <button class="btn-close" onclick="app.closeModal('modal-track')">✕</button>
+            </div>
+
+            <div id="track-map" style="height: 250px; background: #eee; position: relative; z-index: 1;"></div>
+
+            <div style="padding: 1.5rem;">
+                <!-- Current status card -->
+                <div id="track-status-card" class="card"
+                    style="margin-bottom: 2rem; border: 1.2px solid var(--primary); background: var(--primary-light); display: flex; align-items: center; gap: 1rem; padding: 1.2rem;">
+                    <!-- Dynamic status content -->
+                </div>
+
+                <div class="timeline-container">
+                    <h4 style="margin-bottom: 1.5rem; font-weight: 800;">مراحل الطلب</h4>
+                    <div id="track-timeline">
+                        <!-- Timeline items will be rendered here -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="app.js"></script>
 </body>
+
 </html>
